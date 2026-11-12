@@ -148,10 +148,14 @@ const KINDS = {
   revenue:  {name:'市政廳',     icon:'🏛️', xp:200, per:2},
 };
 const KEYS = Object.keys(KINDS);
-const fresh = msg => ({xp:0, done:0, counts:Object.fromEntries(KEYS.map(k => [k,0])), events:[msg]});
+const fresh = msg => ({epoch:2, xp:0, done:0, counts:Object.fromEntries(KEYS.map(k => [k,0])), events:[msg]});
 let state;
 try { state = JSON.parse(localStorage.getItem(KEY)); } catch {}
 if (!state || !state.counts) state = fresh('歡迎來到 Indesight Town！');
+/* 重設紀元：數字改變時，所有瀏覽器的舊進度都會歸零重新開始 */
+const RESET_EPOCH = 2;
+if ((state.epoch || 1) < RESET_EPOCH) state = fresh('城鎮重新開始：從拓荒期出發！');
+state.epoch = RESET_EPOCH;
 for (const k of KEYS) state.counts[k] ??= 0;
 state.xp ??= 0; state.done ??= 0; state.events ??= [];
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
