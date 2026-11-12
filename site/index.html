@@ -75,7 +75,7 @@ footer{font-size:11px;color:#9db5b4;line-height:1.6;margin:0 2px}
 <body>
 <header>
   <div>
-    <strong>✦ INDESIGHT TOWN <span>V1.5.6 原型</span></strong>
+    <strong>✦ INDESIGHT TOWN <span>V1.5.7 原型</span></strong>
     <small>Cozy Modern Pixel Town · 工作成就養成小鎮</small>
   </div>
   <div class="pill" id="topstat">LV 1 · 0 XP</div>
@@ -128,7 +128,7 @@ footer{font-size:11px;color:#9db5b4;line-height:1.6;margin:0 2px}
         <button id="reset" class="danger">↻ 重設進度</button>
       </div>
     </section>
-    <footer>V1.5.6 原型：等距格子地圖，建築、樹木、街道小物與居民已換成正式美術，地面由程式繪製。尚未串接 Notion。進度保存在本機瀏覽器，沿用 V1.4 的存檔。</footer>
+    <footer>V1.5.7 原型：等距格子地圖，建築、樹木、街道小物與居民已換成正式美術，地面由程式繪製。尚未串接 Notion。進度保存在本機瀏覽器，沿用 V1.4 的存檔。</footer>
   </aside>
 </main>
 
@@ -383,7 +383,7 @@ const ART_FILES = {
 const treeArt = v => ART['tree:' + (v === 3 ? 0 : v)];
 /* 居民動作表：每種配色 2 列（正面、背面）× 4 格走路動作 */
 let PEOPLE = null;
-const PEOPLE_SHEET = {src:'assets/people.png', cw:65, ch:98, variants:4, s:.25};
+const PEOPLE_SHEET = {src:'assets/people.png', cw:73, ch:98, variants:4, s:.25};
 function loadPeople(){
   const P = PEOPLE_SHEET, im = new Image();
   im.onload = () => {
