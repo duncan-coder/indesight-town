@@ -75,7 +75,7 @@ footer{font-size:11px;color:#9db5b4;line-height:1.6;margin:0 2px}
 <body>
 <header>
   <div>
-    <strong>✦ INDESIGHT TOWN <span>V1.6.0 原型</span></strong>
+    <strong>✦ INDESIGHT TOWN <span>V1.6.1 原型</span></strong>
     <small>Cozy Modern Pixel Town · 工作成就養成小鎮</small>
   </div>
   <div class="pill" id="topstat">LV 1 · 0 XP</div>
@@ -169,7 +169,8 @@ const STAGE_NAMES = ['', '拓荒期', '成長期', '繁榮期'];
 const townStage = () => level() < 5 ? 1 : level() < 10 ? 2 : 3;
 const expN = k => Math.floor(state.counts[k] / KINDS[k].per);       // 該街區擴建次數
 const totalBuilt = () => KEYS.reduce((a,k) => a + expN(k), 0);
-const pop = () => 6 + Math.min(100, Math.floor(state.done * 1.25));
+/* 人口：Lv.1 只有鎮長一人，之後每升一級多 2 位居民，最多 40 人。面板人口＝畫面上的人數 */
+const pop = () => Math.min(40, 1 + 2 * (level() - 1));
 const hash = (x,y,s=0) => { const v = Math.sin(x*127.1 + y*311.7 + s*74.7) * 43758.5453; return v - Math.floor(v); };
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -582,10 +583,15 @@ function nextTile(r){
   return pick[Math.floor(Math.random()*pick.length)];
 }
 function syncResidents(){
-  const want = Math.min(pop(), 44);
-  residents = residents.filter(r => walk.has(r.x+','+r.y) && walk.has(r.tx+','+r.ty)).slice(0, want);
+  const want = pop();
+  residents = residents.filter(r => walk.has(r.x+','+r.y) && walk.has(r.tx+','+r.ty)).sort((a,b) => a.i - b.i).slice(0, want);
   while (residents.length < want && walkList.length){
-    const i = residents.length, [x,y] = walkList[Math.floor(hash(i,7,state.done)*walkList.length)];
+    let i = 0; while (residents.some(r => r.i === i)) i++;   // 編號 0 永遠是鎮長
+    let [x,y] = walkList[Math.floor(hash(i,7,state.done)*walkList.length)];
+    if (i === 0){                                            // 鎮長從廣場中央附近出發
+      const [px0,py0] = blockOrigin(...PLAZA);
+      [x,y] = walkList.reduce((b,c) => Math.hypot(c[0]-px0-2,c[1]-py0-2) < Math.hypot(b[0]-px0-2,b[1]-py0-2) ? c : b);
+    }
     const r = {i, x, y, px:x, py:y, tx:x, ty:y, t:0, pause:hash(i,3)*2, speed:.75 + hash(i,1)*.5, ox:(hash(i,4)-.5)*.5, oy:(hash(i,5)-.5)*.5};
     [r.tx, r.ty] = nextTile(r); residents.push(r);
   }
