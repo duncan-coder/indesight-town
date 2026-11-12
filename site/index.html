@@ -75,7 +75,7 @@ footer{font-size:11px;color:#9db5b4;line-height:1.6;margin:0 2px}
 <body>
 <header>
   <div>
-    <strong>✦ INDESIGHT TOWN <span>V1.5.9 原型</span></strong>
+    <strong>✦ INDESIGHT TOWN <span>V1.6.0 原型</span></strong>
     <small>Cozy Modern Pixel Town · 工作成就養成小鎮</small>
   </div>
   <div class="pill" id="topstat">LV 1 · 0 XP</div>
@@ -97,10 +97,10 @@ footer{font-size:11px;color:#9db5b4;line-height:1.6;margin:0 2px}
       <div class="tasks">
         <button class="task" data-t="general"><span>✓ 完成一般工作</span><b>+10 XP</b></button>
         <button class="task" data-t="social"><span>📣 發布 X 貼文</span><b>+15 XP</b></button>
-        <button class="task" data-t="seo"><span>📚 發布 SEO 文章</span><b>+50 XP</b></button>
-        <button class="task" data-t="partner"><span>🤝 建立合作夥伴</span><b>+75 XP</b></button>
-        <button class="task" data-t="template"><span>🖥️ 上架 Framer 模板</span><b>+100 XP</b></button>
-        <button class="task" data-t="revenue"><span>🏆 達成營收里程碑</span><b>+200 XP</b></button>
+        <button class="task" data-t="seo"><span>📚 發布 SEO 文章</span><b>+30 XP</b></button>
+        <button class="task" data-t="partner"><span>🤝 建立合作夥伴</span><b>+40 XP</b></button>
+        <button class="task" data-t="template"><span>🖥️ 上架 Framer 模板</span><b>+60 XP</b></button>
+        <button class="task" data-t="revenue"><span>🏆 達成營收里程碑</span><b>+80 XP</b></button>
       </div>
     </section>
     <section class="panel">
@@ -108,7 +108,7 @@ footer{font-size:11px;color:#9db5b4;line-height:1.6;margin:0 2px}
       <div class="stat"><span>城鎮等級</span><b id="level">1</b></div>
       <div class="stat"><span>累積經驗</span><b id="xp">0 XP</b></div>
       <div class="progress"><i id="xpbar"></i></div>
-      <div class="stat"><span>距離升級</span><b id="next">250 XP</b></div>
+      <div class="stat"><span>距離升級</span><b id="next">100 XP</b></div>
       <div class="stat"><span>完成任務</span><b id="done">0</b></div>
       <div class="stat"><span>城鎮人口</span><b id="population">6</b></div>
       <div class="stat"><span>已解鎖擴建</span><b id="built">0</b></div>
@@ -128,7 +128,7 @@ footer{font-size:11px;color:#9db5b4;line-height:1.6;margin:0 2px}
         <button id="reset" class="danger">↻ 重設進度</button>
       </div>
     </section>
-    <footer>V1.5.9 原型：主建築依街區等級從一層長到四層；等距格子地圖，城鎮分拓荒期、成長期、繁榮期三個階段，樹木、設施和路面會跟著城鎮等級成長。尚未串接 Notion。進度保存在本機瀏覽器，沿用 V1.4 的存檔。</footer>
+    <footer>V1.6.0 原型：升級曲線前快後慢；主建築依街區等級從一層長到四層；等距格子地圖，城鎮分拓荒期、成長期、繁榮期三個階段，樹木、設施和路面會跟著城鎮等級成長。尚未串接 Notion。進度保存在本機瀏覽器，沿用 V1.4 的存檔。</footer>
   </aside>
 </main>
 
@@ -142,10 +142,10 @@ const KEY = 'indesight-town-v14';
 const KINDS = {
   general:  {name:'住宅',       icon:'🏠', xp:10,  per:5},
   social:   {name:'廣播塔',     icon:'📡', xp:15,  per:4},
-  seo:      {name:'圖書館',     icon:'📚', xp:50,  per:2},
-  partner:  {name:'商會',       icon:'☕', xp:75,  per:2},
-  template: {name:'設計工作室', icon:'🖥️', xp:100, per:2},
-  revenue:  {name:'市政廳',     icon:'🏛️', xp:200, per:2},
+  seo:      {name:'圖書館',     icon:'📚', xp:30,  per:2},
+  partner:  {name:'商會',       icon:'☕', xp:40,  per:2},
+  template: {name:'設計工作室', icon:'🖥️', xp:60,  per:2},
+  revenue:  {name:'市政廳',     icon:'🏛️', xp:80,  per:2},
 };
 const KEYS = Object.keys(KINDS);
 const fresh = msg => ({epoch:2, xp:0, done:0, counts:Object.fromEntries(KEYS.map(k => [k,0])), events:[msg]});
@@ -159,7 +159,11 @@ state.epoch = RESET_EPOCH;
 for (const k of KEYS) state.counts[k] ??= 0;
 state.xp ??= 0; state.done ??= 0; state.events ??= [];
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
-const level = () => Math.floor(state.xp / 250) + 1;
+/* 升級曲線：Lv.1→2 需要 100 XP，之後每級多 50（Lv.5 累積 700、Lv.10 累積 2,700） */
+const XP_BASE = 100, XP_STEP = 50;
+const xpToNext = lv => XP_BASE + XP_STEP * (lv - 1);
+const xpForLevel = lv => (lv - 1) * XP_BASE + XP_STEP * (lv - 1) * (lv - 2) / 2;  // 到達該等級的累積 XP
+function level(){ let lv = 1; while (state.xp >= xpForLevel(lv + 1)) lv++; return lv; }
 /* 城鎮發展階段：1 拓荒期、2 成長期、3 繁榮期。城鎮裡的樹、路燈、長椅、噴泉和路面跟著階段變化 */
 const STAGE_NAMES = ['', '拓荒期', '成長期', '繁榮期'];
 const townStage = () => level() < 5 ? 1 : level() < 10 ? 2 : 3;
@@ -685,7 +689,8 @@ function toast(msg){ const el = $('toast'); el.textContent = msg; el.style.opaci
 function update(){
   const lv = level();
   $('level').textContent = lv; $('xp').textContent = state.xp.toLocaleString() + ' XP';
-  $('next').textContent = (250 - state.xp%250) + ' XP'; $('xpbar').style.width = (state.xp%250)/250*100 + '%';
+  const into = state.xp - xpForLevel(lv), need = xpToNext(lv);
+  $('next').textContent = (need - into) + ' XP'; $('xpbar').style.width = into/need*100 + '%';
   $('done').textContent = state.done; $('population').textContent = pop(); $('built').textContent = totalBuilt();
   $('topstat').textContent = 'LV ' + lv + ' · ' + state.xp.toLocaleString() + ' XP';
   $('districts').innerHTML = KEYS.map(k => { const K = KINDS[k], n = state.counts[k];
