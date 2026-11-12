@@ -75,7 +75,7 @@ footer{font-size:11px;color:#9db5b4;line-height:1.6;margin:0 2px}
 <body>
 <header>
   <div>
-    <strong>✦ INDESIGHT TOWN <span>V1.6.2 原型</span></strong>
+    <strong>✦ INDESIGHT TOWN <span>V1.6.3 原型</span></strong>
     <small>Cozy Modern Pixel Town · 工作成就養成小鎮</small>
   </div>
   <div class="pill" id="topstat">LV 1 · 0 XP</div>
@@ -167,7 +167,16 @@ function level(){ let lv = 1; while (state.xp >= xpForLevel(lv + 1)) lv++; retur
 /* 城鎮發展階段：1 拓荒期、2 成長期、3 繁榮期。城鎮裡的樹、路燈、長椅、噴泉和路面跟著階段變化 */
 const STAGE_NAMES = ['', '拓荒期', '成長期', '繁榮期'];
 const townStage = () => level() < 5 ? 1 : level() < 10 ? 2 : 3;
-const expN = k => Math.floor(state.counts[k] / KINDS[k].per);       // 該街區擴建次數
+/* 擴建成本遞增：第 s 次擴建需要 per × (1 + 0.2s) 件任務（住宅 5、6、7、8…）。
+   每個街區 12 塊建地 × 3 層 = 36 次擴建：先把 12 塊地都蓋好，再全部加到 2 層，最後加到 3 層 */
+const MAX_STEPS = 36;
+const stepCost = (k, s) => Math.ceil(KINDS[k].per * (1 + 0.2 * s));
+function stepProgress(k){                       // {n: 已完成擴建次數, into: 這一步做了幾件, need: 這一步要幾件}
+  let left = state.counts[k], n = 0;
+  while (n < MAX_STEPS && left >= stepCost(k, n)){ left -= stepCost(k, n); n++; }
+  return {n, into:left, need: n < MAX_STEPS ? stepCost(k, n) : 0};
+}
+const expN = k => stepProgress(k).n;            // 該街區擴建次數
 const totalBuilt = () => KEYS.reduce((a,k) => a + expN(k), 0);
 /* 人口：Lv.1 只有鎮長一人，之後每升一級多 2 位居民，最多 40 人。面板人口＝畫面上的人數 */
 const pop = () => Math.min(40, 1 + 2 * (level() - 1));
@@ -380,6 +389,7 @@ const spr = (key, make) => { let s = cache.get(key); if (!s){ s = make(); cache.
 
 /* 正式美術：有圖檔的建築用圖檔，沒有的沿用程式繪製。s 是圖檔縮到世界座標的比例，(ax,ay) 是地基最前端頂點 */
 const ART = {};
+/* 擴建小建築的 2、3 層圖到位後，在這裡加上 'lot:<街區>:2' 和 'lot:<街區>:3' */
 const ART_FILES = {
   'main:revenue':  {src:'assets/main-revenue.png',  s:.25, ax:48, ay:112},
   'main:general':  {src:'assets/main-general.png',  s:.25, ax:48, ay:109},
@@ -514,7 +524,7 @@ function rebuild(){
     LOTS[k].forEach((L,i) => {
       const tier = lotTier(k,i); if (!tier) return;
       const [LX,LY] = iso(L.x+2,L.y+2);
-      put({X:LX, Y:LY, key:L.x+L.y+2-1.5, id:`lot:${k}:${i}`, glow:[LX,LY-22,22], get:lit => ART['lot:'+k] || spr(`lot:${k}:${tier}:${lit}`, () => lotSprite(k,tier,lit))});
+      put({X:LX, Y:LY, key:L.x+L.y+2-1.5, id:`lot:${k}:${i}`, glow:[LX,LY-22,22], get:lit => ART[`lot:${k}:${tier}`] || ART['lot:'+k] || spr(`lot:${k}:${tier}:${lit}`, () => lotSprite(k,tier,lit))});
       for (let oy=0; oy<2; oy++) for (let ox=0; ox<2; ox++) occupied.add((L.x+ox)+','+(L.y+oy));
     });
   }
@@ -708,7 +718,8 @@ function update(){
   $('done').textContent = state.done; $('population').textContent = pop(); $('built').textContent = totalBuilt();
   $('topstat').textContent = 'LV ' + lv + ' · ' + state.xp.toLocaleString() + ' XP';
   $('districts').innerHTML = KEYS.map(k => { const K = KINDS[k], n = state.counts[k];
-    return `<div class="district"><div class="stat"><span>${K.icon} ${K.name}</span><b>Lv.${1+Math.floor(n/K.per)}</b></div><div class="progress"><i style="width:${n%K.per/K.per*100}%"></i></div></div>`; }).join('');
+    const P = stepProgress(k), pct = P.need ? P.into/P.need*100 : 100;
+    return `<div class="district"><div class="stat"><span>${K.icon} ${K.name}</span><b>Lv.${1+P.n}</b></div><div class="progress" title="下次擴建還要 ${P.need - P.into} 件任務"><i style="width:${pct}%"></i></div></div>`; }).join('');
   $('events').innerHTML = state.events.slice(0,18).map(e => '<div>' + String(e).replace(/[<>&]/g,'') + '</div>').join('');
 }
 function burst(X,Y,n){ for (let i=0; i<n; i++) particles.push({x:X, y:Y, vx:(Math.random()-.5)*70, vy:-20-Math.random()*70, life:1, color:['#ffe5a0','#fff8e0','#f4a9c6','#9de6c7'][i%4]}); }
