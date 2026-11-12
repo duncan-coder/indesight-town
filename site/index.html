@@ -75,7 +75,7 @@ footer{font-size:11px;color:#9db5b4;line-height:1.6;margin:0 2px}
 <body>
 <header>
   <div>
-    <strong>✦ INDESIGHT TOWN <span>V1.6.1 原型</span></strong>
+    <strong>✦ INDESIGHT TOWN <span>V1.6.2 原型</span></strong>
     <small>Cozy Modern Pixel Town · 工作成就養成小鎮</small>
   </div>
   <div class="pill" id="topstat">LV 1 · 0 XP</div>
@@ -436,8 +436,15 @@ const treeArt = (v, st = 3) => sArt('tree:' + (v === 3 ? 0 : v), st);
 /* 居民動作表：每種配色 2 列（正面、背面）× 4 格走路動作 */
 let PEOPLE = null;
 const PEOPLE_SHEET = {src:'assets/people.png', cw:73, ch:98, variants:4, s:.25};
+/* 鎮長動作表：3 個造型，依城鎮階段（拓荒期、成長期、繁榮期）換裝 */
+let MAYOR = null;
+const MAYOR_SHEET = {src:'assets/mayor.png', cw:58, ch:98, variants:3, s:.25};
 function loadPeople(){
-  const P = PEOPLE_SHEET, im = new Image();
+  loadSheet(PEOPLE_SHEET, list => { PEOPLE = list; });
+  loadSheet(MAYOR_SHEET, list => { MAYOR = list; });
+}
+function loadSheet(P, done){
+  const im = new Image();
   im.onload = () => {
     const list = [];
     for (let v=0; v<P.variants; v++){
@@ -453,7 +460,7 @@ function loadPeople(){
       }
       list.push(dirs);
     }
-    PEOPLE = list;
+    done(list);
   };
   im.src = P.src;
 }
@@ -647,7 +654,8 @@ function frame(t){
     const dx = r.tx-r.x, dy = r.ty-r.y, moving = r.pause <= 0 && (dx || dy);
     const fr = moving ? 1 + Math.floor(t/170 + r.i) % 2 : 0, back = (dx+dy) < 0 ? 1 : 0;
     /* 角色圖：正面往右下走、背面往左上走為原始方向，其餘方向左右翻轉 */
-    const pa = PEOPLE && PEOPLE[r.i % PEOPLE.length][back][moving ? Math.floor(t/150 + r.i) % 4 : 1];
+    const sheet = r.i === 0 ? (MAYOR && MAYOR[townStage() - 1]) : (PEOPLE && PEOPLE[(r.i - 1) % PEOPLE.length]);
+    const pa = sheet && sheet[back][moving ? Math.floor(t/150 + r.i) % 4 : 1];
     if (pa) return {X:Math.round(X), Y:Math.round(Y), key:fx+fy, flip: back ? (dx-dy) >= 0 : (dx-dy) < 0, get:() => pa};
     return {X:Math.round(X), Y:Math.round(Y), key:fx+fy, flip:(dx-dy) < 0, get:() => spr(`p:${r.i%24}:${back}:${fr}`, () => personSprite(r.i%24, back, fr))};
   });
